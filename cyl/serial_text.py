@@ -5,8 +5,9 @@ import time
 print('hello')
 ports = list(serial.tools.list_ports.comports())
 print(ports)
-pip = "hello";
+pip = "a"
 ser = serial.Serial(port= ports[1][0])
-print("get")
-ser.write(pip.encode())
-print('what')
+
+while True:
+    ser.write(pip.encode())
+    time.sleep(2)

@@ -2,6 +2,8 @@ import numpy as np
 import cv2
 
 # cap=cv2.VideoCapture(0)
+video = "http://admin:admin@192.168.137.212:8081/"
+cap = cv2.VideoCapture(video)
 
 position = []
 counter = 0
@@ -18,6 +20,7 @@ class Node():
         self.figure_state()
         self._l_son = l_son
         self._r_son = r_son
+        self.to_end = False
         self.len = 0
         for i in range(4):
             if self.state[i] == 1:
@@ -27,9 +30,9 @@ class Node():
     def figure_state(self):
         if ptfer[self.pos[0] * px_per_unit + px_per_unit // 2, self.pos[1] * px_per_unit + px_per_unit // 30] == 0:
             self.state[3] = 1  # 状态为黑色是1
-        if ptfer[self.pos[0] * px_per_unit + px_per_unit, self.pos[1] * px_per_unit + px_per_unit // 2] == 0:
+        if ptfer[self.pos[0] * px_per_unit + px_per_unit-1, self.pos[1] * px_per_unit + px_per_unit // 2] == 0:
             self.state[2] = 1
-        if ptfer[self.pos[0] * px_per_unit + px_per_unit // 2, self.pos[1] * px_per_unit + px_per_unit] == 0:
+        if ptfer[self.pos[0] * px_per_unit + px_per_unit // 2, self.pos[1] * px_per_unit + px_per_unit-1] == 0:
             self.state[1] = 1
         if ptfer[self.pos[0] * px_per_unit + px_per_unit // 30, self.pos[1] * px_per_unit + px_per_unit // 2] == 0:
             self.state[0] = 1
@@ -45,7 +48,6 @@ class Node():
         if self.len == 3:
             return False
 
-
 # 节点构成的tree定义
 class tree():
 
@@ -55,7 +57,7 @@ class tree():
     def drawline(self, startpos, finalpos):
         pos1 = (startpos[1] * px_per_unit + px_per_unit // 2, startpos[0] * px_per_unit + px_per_unit // 2)
         pos2 = (finalpos[1] * px_per_unit + px_per_unit // 2, finalpos[0] * px_per_unit + px_per_unit // 2)
-        cv2.line(frame, pos1, pos2, (255, 0, 0), 1)
+        cv2.line(frame, pos1, pos2, (255,0,0), 1)
 
     def search_Node(self, initial, node, finalpos):
         for i in range(4):
@@ -151,6 +153,38 @@ class tree():
                             elif tmp.state[3] == 1:
                                 break
 
+    def findPathToEnd(self, finalpos):
+        self.head.to_end = True
+        tmp1 = self.head
+        self.pfindPathToEnd(self.head, finalpos)
+        while True:
+            if tmp1._l_son.to_end is True:
+                tmp2 = tmp1._l_son
+            else:
+                tmp2 = tmp1._r_son
+            pos1 = (tmp1.pos[1] * px_per_unit + px_per_unit // 2, tmp1.pos[0] * px_per_unit + px_per_unit // 2)
+            pos2 = (tmp2.pos[1] * px_per_unit + px_per_unit // 2, tmp2.pos[0] * px_per_unit + px_per_unit // 2)
+            cv2.line(frame, pos1, pos2, (255,255,0), 3)
+            tmp1 = tmp2
+            if tmp2.pos == finalpos:
+                break
+
+    def pfindPathToEnd(self, inode, finalpos):
+        if inode.pos == finalpos:
+            inode.to_end = True
+        if inode._l_son is not None:
+            self.pfindPathToEnd(inode._l_son, finalpos)
+            if inode._l_son.to_end is True:
+                inode.to_end = True
+        if inode._r_son is not None:
+            self.pfindPathToEnd(inode._r_son, finalpos)
+            if inode._r_son.to_end is True:
+                inode.to_end = True
+
+
+
+
+
 
 # 鼠标事件
 def get_click_position(event, x, y, flags, param):
@@ -167,39 +201,39 @@ cv2.setMouseCallback('frame', get_click_position)
 
 # 主循环
 while True:
-    # ret,frame=cap.read()
-    frame = cv2.imread("figure\\maze1.jpg")
+    ret,frame=cap.read()
+    # frame = cv2.imread("figure\\maze1.jpg")
     gray_img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    # ret1, thresh1 = cv2.threshold(gray_img, 120, 255, cv2.THRESH_BINARY)
-    ret1, ptfer = cv2.threshold(gray_img, 120, 255, cv2.THRESH_BINARY)
+    # ret1, ptfer = cv2.threshold(gray_img, 180, 255, cv2.THRESH_BINARY)
 
     for i in range(len(position)):
         cv2.circle(frame, (position[i][0], position[i][1]), 5, (255, 0, 0), -1)
 
-    '''if counter == 4:
+    if counter == 4:
         unit_grid = int(input("Please input the grid unit: "))
         px_per_unit = 240 // unit_grid
 
         iposition = np.float32(position)
         M = cv2.getPerspectiveTransform(iposition, tposition)
-        ptfer = cv2.warpPerspective(thresh1, M, (240, 240))
+        thresh1 = cv2.warpPerspective(gray_img, M, (240, 240))
+        ret1, ptfer = cv2.threshold(thresh1, 180, 255, cv2.THRESH_BINARY)
         startpos = [0, 3]
         finalpos = [3, 0]
+        a = tree(startpos)
+        a.search_Node(3, a.head, finalpos)
         cv2.imshow('ptfer', ptfer)
-        cv2.circle(ptfer,(120,59), 5, (255, 0, 0), -1)
-        cv2.imshow('ptfer', ptfer)
-        a = Node([2, 2])
+        counter = 0
         position = []
-        counter = 0'''
-    px_per_unit = 240 // 4
+    '''px_per_unit = 240 // 4
     startpos = [3, 0]
     finalpos = [0, 3]
     a = tree(startpos)
     a.search_Node(3, a.head, finalpos)
+    a.findPathToEnd(finalpos)'''
 
     cv2.imshow('frame', frame)
     # cv2.imshow('what', thresh1)
-    cv2.imshow('ptefer', ptfer)
+    # cv2.imshow('ptefer', ptfer)
     c = cv2.waitKey(100) & 0xFF
     if c == ord('q'):
         break
