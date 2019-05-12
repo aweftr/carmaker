@@ -2,8 +2,8 @@ import numpy as np
 import cv2
 
 # cap=cv2.VideoCapture(0)
-video = "http://admin:admin@192.168.137.212:8081/"
-cap = cv2.VideoCapture(video)
+# video = "http://admin:admin@192.168.137.212:8081/"
+# cap = cv2.VideoCapture(video)
 
 position = []
 counter = 0
@@ -28,13 +28,13 @@ class Node():
         self.rnode = self.Is_a_rnode()
 
     def figure_state(self):
-        if ptfer[self.pos[0] * px_per_unit + px_per_unit // 2, self.pos[1] * px_per_unit + px_per_unit // 30] == 0:
+        if ptfer[self.pos[0] * px_per_unit + px_per_unit // 2, self.pos[1] * px_per_unit] == 0:
             self.state[3] = 1  # 状态为黑色是1
         if ptfer[self.pos[0] * px_per_unit + px_per_unit-1, self.pos[1] * px_per_unit + px_per_unit // 2] == 0:
             self.state[2] = 1
         if ptfer[self.pos[0] * px_per_unit + px_per_unit // 2, self.pos[1] * px_per_unit + px_per_unit-1] == 0:
             self.state[1] = 1
-        if ptfer[self.pos[0] * px_per_unit + px_per_unit // 30, self.pos[1] * px_per_unit + px_per_unit // 2] == 0:
+        if ptfer[self.pos[0] * px_per_unit , self.pos[1] * px_per_unit + px_per_unit // 2] == 0:
             self.state[0] = 1
 
     def Is_a_rnode(self):
@@ -57,7 +57,7 @@ class tree():
     def drawline(self, startpos, finalpos):
         pos1 = (startpos[1] * px_per_unit + px_per_unit // 2, startpos[0] * px_per_unit + px_per_unit // 2)
         pos2 = (finalpos[1] * px_per_unit + px_per_unit // 2, finalpos[0] * px_per_unit + px_per_unit // 2)
-        cv2.line(frame, pos1, pos2, (255,0,0), 1)
+        cv2.line(pic1, pos1, pos2, (255,0,0), 1)
 
     def search_Node(self, initial, node, finalpos):
         for i in range(4):
@@ -164,7 +164,7 @@ class tree():
                 tmp2 = tmp1._r_son
             pos1 = (tmp1.pos[1] * px_per_unit + px_per_unit // 2, tmp1.pos[0] * px_per_unit + px_per_unit // 2)
             pos2 = (tmp2.pos[1] * px_per_unit + px_per_unit // 2, tmp2.pos[0] * px_per_unit + px_per_unit // 2)
-            cv2.line(frame, pos1, pos2, (255,255,0), 3)
+            cv2.line(pic1, pos1, pos2, (255,255,0), 3)
             tmp1 = tmp2
             if tmp2.pos == finalpos:
                 break
@@ -201,8 +201,8 @@ cv2.setMouseCallback('frame', get_click_position)
 
 # 主循环
 while True:
-    ret,frame=cap.read()
-    # frame = cv2.imread("figure\\maze1.jpg")
+    # ret,frame=cap.read()
+    frame = cv2.imread("maze.png")
     gray_img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     # ret1, ptfer = cv2.threshold(gray_img, 180, 255, cv2.THRESH_BINARY)
 
@@ -215,13 +215,19 @@ while True:
 
         iposition = np.float32(position)
         M = cv2.getPerspectiveTransform(iposition, tposition)
+        pic1 = cv2.warpPerspective(frame, M, (240, 240))
         thresh1 = cv2.warpPerspective(gray_img, M, (240, 240))
         ret1, ptfer = cv2.threshold(thresh1, 180, 255, cv2.THRESH_BINARY)
-        startpos = [0, 3]
-        finalpos = [3, 0]
+        kernel = cv2.getStructuringElement(0,(5,5))
+        for i in range(2):
+            ptfer = cv2.erode(ptfer, kernel, iterations = 1)
+        startpos = [3, 0]
+        finalpos = [0, 3]
         a = tree(startpos)
         a.search_Node(3, a.head, finalpos)
-        cv2.imshow('ptfer', ptfer)
+        a.findPathToEnd(finalpos)
+        cv2.imshow('ptefer', ptfer)
+        cv2.imshow('pic1', pic1)
         counter = 0
         position = []
     '''px_per_unit = 240 // 4
