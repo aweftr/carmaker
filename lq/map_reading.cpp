@@ -20,7 +20,7 @@ static void onMouse(int event, int x, int y, int, void*) {
 	}
 }
 
-cv::Point2f* getPosByMaus(std::string windowName) {
+cv::Point2f* getPosByMaus(const std::string windowName) {
 	winName = windowName;
 	std::cout << "\nPlease click point1 in window \"" << winName << "\".";
 	cv::setMouseCallback(windowName, onMouse, 0);
@@ -94,43 +94,43 @@ cv::Point2f* getPosByColoredShapes(cv::Mat rgbPic, cv::Scalar lowerS, cv::Scalar
 
 	//Two ways of detection: auto, and manual(trackBars).
 	//The latter is for parameter adjustments.
-		//#1
-	cv::inRange(hsvPic, lowerS, upperS, mask);
+	//	//#1
+	//cv::inRange(hsvPic, lowerS, upperS, mask);
 
-	//apply the mask to the rgbPic to take what we need
-	for (int r = 0; r < rgbPic.rows; r++)
-	{
-		for (int c = 0; c < rgbPic.cols; c++)
-		{
-			if (mask.at<uchar>(r, c) == 255)
-			{
-				result.at<cv::Vec3b>(r, c) = rgbPic.at<cv::Vec3b>(r, c);
-			}
-		}
-	}//#1 ends
-
-	//	//#2
-	//cv::namedWindow("Manual param selection");
-	//int L = 0, U = 255, *lH = &L, *uH = &U;
-	//while (1) {
-	//	cv::createTrackbar("lowerH", "Manual param selection", lH, 255, 0, 0);
-	//	cv::createTrackbar("upperH", "Manual param selection", uH, 255, 0, 0);
-	//	cv::inRange(hsvPic, cv::Scalar(L, lowerS[1], lowerS[2]), cv::Scalar(U, upperS[1], upperS[2]), mask);
-	//	
-	//	result = cv::Mat::zeros(rgbPic.size(), CV_8UC3);
-
-	//	for (int r = 0; r < rgbPic.rows; r++){
-	//		for (int c = 0; c < rgbPic.cols; c++){
-	//			if (mask.at<uchar>(r, c) == 255){
-	//				result.at<cv::Vec3b>(r, c) = rgbPic.at<cv::Vec3b>(r, c);
-	//			}
+	////apply the mask to the rgbPic to take what we need
+	//for (int r = 0; r < rgbPic.rows; r++)
+	//{
+	//	for (int c = 0; c < rgbPic.cols; c++)
+	//	{
+	//		if (mask.at<uchar>(r, c) == 255)
+	//		{
+	//			result.at<cv::Vec3b>(r, c) = rgbPic.at<cv::Vec3b>(r, c);
 	//		}
 	//	}
+	//}//#1 ends
 
-	//	cv::imshow("Manual param selection", result);
-	//	if (cv::waitKey(20) >= 5)
-	//		break;
-	//}//#2 ends
+		//#2
+	cv::namedWindow("Manual param selection");
+	int L = 0, U = 255, *lH = &L, *uH = &U;
+	while (1) {
+		cv::createTrackbar("lowerH", "Manual param selection", lH, 255, 0, 0);
+		cv::createTrackbar("upperH", "Manual param selection", uH, 255, 0, 0);
+		cv::inRange(hsvPic, cv::Scalar(L, lowerS[1], lowerS[2]), cv::Scalar(U, upperS[1], upperS[2]), mask);
+		
+		result = cv::Mat::zeros(rgbPic.size(), CV_8UC3);
+
+		for (int r = 0; r < rgbPic.rows; r++){
+			for (int c = 0; c < rgbPic.cols; c++){
+				if (mask.at<uchar>(r, c) == 255){
+					result.at<cv::Vec3b>(r, c) = rgbPic.at<cv::Vec3b>(r, c);
+				}
+			}
+		}
+
+		cv::imshow("Manual param selection", result);
+		if (cv::waitKey(20) >= 5)
+			break;
+	}//#2 ends
 
 	//Erode and then dilate, erases noise
 	cv::Mat erodeElement = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
@@ -165,4 +165,67 @@ cv::Point2f* getPosByColoredShapes(cv::Mat rgbPic, cv::Scalar lowerS, cv::Scalar
 
 
 	return points;
+}
+
+
+cv::Mat thin(cv::Mat src,int iterations) {
+	cv::Mat dst, dstdat;
+	src.copyTo(dst);
+	src.copyTo(dstdat);
+	for (int n = 0; n < iterations; n++)
+		for (int s = 0; s <= 1; s++) {
+			dst.copyTo(dstdat);
+			for (int i = 0; i < src.rows; i++)
+				for (int j = 0; j < src.cols; j++)
+					if (dstdat.at<uchar>(i, j)) {
+						int a = 0, b = 0;
+						int d[8][2] = { {-1, 0}, {-1, 1}, {0, 1}, {1, 1},
+						 {1, 0}, {1, -1}, {0, -1}, {-1, -1} };
+						int p[8];
+						p[0] = (i == 0) ? 0 : dstdat.at<uchar>(i - 1, j);
+						for (int k = 1; k <= 8; k++) {
+							if (i + d[k % 8][0] < 0 || i + d[k % 8][0] >= src.rows ||
+								j + d[k % 8][1] < 0 || j + d[k % 8][1] >= src.cols)
+								p[k % 8] = 0;
+							else p[k % 8] = dstdat.at<uchar>(i + d[k % 8][0], j + d[k % 8][1]);
+							if (p[k % 8]) {
+								b++;
+								if (!p[k - 1]) a++;
+							}
+						}
+						if (b >= 2 && b <= 6 && a == 1)
+							if (!s && !(p[2] && p[4] && (p[0] || p[6])))
+								dst.at<uchar>(i, j) = 0;
+							else if (s && !(p[0] && p[6] && (p[2] || p[4])))
+								dst.at<uchar>(i, j) = 0;
+					}
+		}
+	return dst;
+}
+
+
+int new_count_maus_clicks = 0;
+std::string new_winName;
+std::vector<cv::Point2f> strtEndResult;
+//new OnMouse for getStrtEnd()
+static void onMouse2(int event, int x, int y, int, void*) {
+	if (event == cv::EVENT_LBUTTONDOWN) {
+		if (new_count_maus_clicks < 2) {
+			cv::Point2f pointTmp((float)x, (float)y);
+			strtEndResult.push_back(pointTmp);
+			if (new_count_maus_clicks == 0)
+				std::cout << "Please input end point;\n";
+			else
+				std::cout << "Input ends.Press any button to continue.\n";
+			new_count_maus_clicks++;
+		}
+	}
+}
+//function for getting the starting points and ending points by mause clicks
+std::vector<cv::Point2f> getStrtEnd(const std::string windowName) {
+	new_winName = windowName;
+	std::cout << "\nWorking on " << new_winName << ".\nPlease input start point; \n";
+	cv::setMouseCallback(windowName, onMouse2, 0);
+	cv::waitKey(0);
+	return strtEndResult;
 }

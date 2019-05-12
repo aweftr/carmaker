@@ -17,7 +17,7 @@ cv::Point2f* getPosByMaus(std::string windowName);
 
 //---------------------------------------------------------------------
 //Gets 4 points specified by centers of colored shapes whose colors lie
-//in the 3-dimention HSV color space specified by the two vertices, 
+//in the 3-dimentional HSV color space specified by the two vertices, 
 //namely scalars. RgbPic must be in rgb form. No default detection color.
 cv::Point2f* getPosByColoredShapes(cv::Mat rgbPic, cv::Scalar lowerS, cv::Scalar upperS);
 //---------------------------------------------------------------------
@@ -33,4 +33,17 @@ cv::Mat rescaleWarp(cv::Point2f* startPoints, cv::Mat picture);
 //---------------------------------------------------------------------
 //Does the initializing such as trackBars on the creation of the video page.
 void videoOnCreate(const std::string videoWinName, int* thresholdPtr);
+//---------------------------------------------------------------------
+
+
+//---------------------------------------------------------------------
+//Thinning function from the instruction book, tailored to this version
+//of openCV. Tailored to current version now, and is fully functioning.
+cv::Mat thin(cv::Mat src, int iterations);
+//---------------------------------------------------------------------
+
+
+//---------------------------------------------------------------------
+//Gets start point and end point by mouse. Simillar to getPosByMaus().
+std::vector<cv::Point2f> getStrtEnd(const std::string windowName);
 //---------------------------------------------------------------------
