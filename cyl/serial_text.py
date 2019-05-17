@@ -2,12 +2,14 @@ import serial
 import serial.tools.list_ports
 import time
 
-print('hello')
 ports = list(serial.tools.list_ports.comports())
-print(ports)
-pip = "a"
-ser = serial.Serial(port= ports[1][0])
+ser = serial.Serial(port=ports[1][0])
+
+angle = 180
+
+j = angle // 4
 
 while True:
+    pip = input()
     ser.write(pip.encode())
-    time.sleep(2)
+

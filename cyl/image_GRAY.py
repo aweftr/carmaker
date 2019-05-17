@@ -1,7 +1,17 @@
 import numpy as np
 import cv2
+import math
+import serial
+import serial.tools.list_ports
+import time
 
-# cap=cv2.VideoCapture(0)
+'''ports = list(serial.tools.list_ports.comports())
+for i in ports:
+    print(i[0])
+
+ser = serial.Serial(port=ports[1][0])'''
+
+cap = cv2.VideoCapture(1)
 # video = "http://admin:admin@192.168.137.212:8081/"
 # cap = cv2.VideoCapture(video)
 
@@ -30,11 +40,11 @@ class Node():
     def figure_state(self):
         if ptfer[self.pos[0] * px_per_unit + px_per_unit // 2, self.pos[1] * px_per_unit] == 0:
             self.state[3] = 1  # 状态为黑色是1
-        if ptfer[self.pos[0] * px_per_unit + px_per_unit-1, self.pos[1] * px_per_unit + px_per_unit // 2] == 0:
+        if ptfer[self.pos[0] * px_per_unit + px_per_unit - 1, self.pos[1] * px_per_unit + px_per_unit // 2] == 0:
             self.state[2] = 1
-        if ptfer[self.pos[0] * px_per_unit + px_per_unit // 2, self.pos[1] * px_per_unit + px_per_unit-1] == 0:
+        if ptfer[self.pos[0] * px_per_unit + px_per_unit // 2, self.pos[1] * px_per_unit + px_per_unit - 1] == 0:
             self.state[1] = 1
-        if ptfer[self.pos[0] * px_per_unit , self.pos[1] * px_per_unit + px_per_unit // 2] == 0:
+        if ptfer[self.pos[0] * px_per_unit, self.pos[1] * px_per_unit + px_per_unit // 2] == 0:
             self.state[0] = 1
 
     def Is_a_rnode(self):
@@ -48,6 +58,7 @@ class Node():
         if self.len == 3:
             return False
 
+
 # 节点构成的tree定义
 class tree():
 
@@ -57,7 +68,7 @@ class tree():
     def drawline(self, startpos, finalpos):
         pos1 = (startpos[1] * px_per_unit + px_per_unit // 2, startpos[0] * px_per_unit + px_per_unit // 2)
         pos2 = (finalpos[1] * px_per_unit + px_per_unit // 2, finalpos[0] * px_per_unit + px_per_unit // 2)
-        cv2.line(pic1, pos1, pos2, (255,0,0), 1)
+        cv2.line(pic1, pos1, pos2, (255, 0, 0), 1)
 
     def search_Node(self, initial, node, finalpos):
         for i in range(4):
@@ -158,13 +169,13 @@ class tree():
         tmp1 = self.head
         self.pfindPathToEnd(self.head, finalpos)
         while True:
-            if tmp1._l_son.to_end is True:
+            if tmp1._l_son is not None and tmp1._l_son.to_end is True:
                 tmp2 = tmp1._l_son
             else:
                 tmp2 = tmp1._r_son
             pos1 = (tmp1.pos[1] * px_per_unit + px_per_unit // 2, tmp1.pos[0] * px_per_unit + px_per_unit // 2)
             pos2 = (tmp2.pos[1] * px_per_unit + px_per_unit // 2, tmp2.pos[0] * px_per_unit + px_per_unit // 2)
-            cv2.line(pic1, pos1, pos2, (255,255,0), 3)
+            cv2.line(pic1, pos1, pos2, (255, 255, 0), 3)
             tmp1 = tmp2
             if tmp2.pos == finalpos:
                 break
@@ -182,10 +193,6 @@ class tree():
                 inode.to_end = True
 
 
-
-
-
-
 # 鼠标事件
 def get_click_position(event, x, y, flags, param):
     global counter
@@ -196,15 +203,88 @@ def get_click_position(event, x, y, flags, param):
         print(counter)
 
 
+def nothing(x):
+    pass
+
+
+def GetCarPosition(frame):
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
+    lower_blue = np.array([100, 43, 46])
+    upper_blue = np.array([124, 255, 255])
+    lower_red = np.array([0, 43, 46])
+    upper_red = np.array([10, 255, 255])
+    mask1 = cv2.inRange(hsv, lower_blue, upper_blue)
+    mask2 = cv2.inRange(hsv, lower_red, upper_red)
+    res = cv2.bitwise_and(pic2,pic2,mask = mask1)
+    res1 = cv2.bitwise_and(pic2, pic2, mask=mask2)
+    cv2.imshow('maskred', res)
+    cv2.imshow('maskblue', res1)
+    num = x = y = 0
+    num1 = x1 = y1 = 0
+    tmp = []
+    tmp2 = []
+    for i in range(frame.shape[0]):
+        for j in range(frame.shape[1]):
+            if mask1[i, j] == 255:
+                num = num + 1
+                x = x + i
+                y = y + j
+            if mask2[i, j] == 255:
+                num1 = num1 + 1
+                x1 = x1 + i
+                y1 = y1 + j
+    if num is not 0:
+        x = x // num
+        y = y // num
+        tmp = [y, x]
+    if num1 is not 0:
+        x1 = x1 // num1
+        y1 = y1 // num1
+        tmp2 = [y1, x1]
+    return tmp, tmp2
+
+
+def GetDistance(inpos1, inpos2):
+    return math.sqrt(math.pow((inpos1[0] - inpos2[0]), 2) + math.pow((inpos1[1] - inpos2[1]), 2))
+
+
+'''def TurnRight(angle):
+    pip = 'e'
+    j = angle
+    for i in range(j):
+        ser.write(pip.encode())
+
+
+def TurnLeft(angle):
+    pip = 'd'
+    j = angle
+    for i in range(j):
+        ser.write(pip.encode())
+
+
+def GoAhead(distance):
+    pip = 'f'
+    j = distance
+    for i in range(j):
+        ser.write(pip.encode())'''
+
+
 cv2.namedWindow('frame')
 cv2.setMouseCallback('frame', get_click_position)
 
+cv2.namedWindow('grayimg')
+cv2.createTrackbar('mask', 'grayimg', 0, 255, nothing)
+pic2 = np.array([0])
+
 # 主循环
 while True:
-    # ret,frame=cap.read()
-    frame = cv2.imread("maze.png")
+    ret, frame = cap.read()
+    # frame = cv2.imread("maze_with_color.png")
     gray_img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    # ret1, ptfer = cv2.threshold(gray_img, 180, 255, cv2.THRESH_BINARY)
+    mask_value = cv2.getTrackbarPos('mask', 'grayimg')
+    ret0, ptfer0 = cv2.threshold(gray_img, mask_value, 255, cv2.THRESH_BINARY)
+    startpos = [3, 0]
+    finalpos = [3, 3]
 
     for i in range(len(position)):
         cv2.circle(frame, (position[i][0], position[i][1]), 5, (255, 0, 0), -1)
@@ -216,30 +296,54 @@ while True:
         iposition = np.float32(position)
         M = cv2.getPerspectiveTransform(iposition, tposition)
         pic1 = cv2.warpPerspective(frame, M, (240, 240))
+        pic2 = pic1.copy()
         thresh1 = cv2.warpPerspective(gray_img, M, (240, 240))
-        ret1, ptfer = cv2.threshold(thresh1, 180, 255, cv2.THRESH_BINARY)
-        kernel = cv2.getStructuringElement(0,(5,5))
+        ret1, ptfer = cv2.threshold(thresh1, mask_value, 255, cv2.THRESH_BINARY)
+        kernel = cv2.getStructuringElement(0, (5, 5))
         for i in range(2):
-            ptfer = cv2.erode(ptfer, kernel, iterations = 1)
-        startpos = [3, 0]
-        finalpos = [0, 3]
+            ptfer = cv2.erode(ptfer, kernel, iterations=1)
         a = tree(startpos)
         a.search_Node(3, a.head, finalpos)
         a.findPathToEnd(finalpos)
+        if a.head._l_son.to_end is True:
+            dstnode = a.head._l_son
+        else:
+            dstnode = a.head._r_son
+
         cv2.imshow('ptefer', ptfer)
         cv2.imshow('pic1', pic1)
         counter = 0
         position = []
-    '''px_per_unit = 240 // 4
-    startpos = [3, 0]
-    finalpos = [0, 3]
-    a = tree(startpos)
-    a.search_Node(3, a.head, finalpos)
-    a.findPathToEnd(finalpos)'''
 
+    if pic2.any():
+        pic2 = cv2.warpPerspective(frame, M, (240, 240))
+        bluepos, redpos = GetCarPosition(pic2)
+        brdist = GetDistance(bluepos, redpos)
+        centerpos = [(bluepos[0] + redpos[0]) / 2, (bluepos[1] + redpos[1]) / 2]
+        dstpos = [dstnode.pos[1] * px_per_unit + px_per_unit // 2, dstnode.pos[0] * px_per_unit + px_per_unit // 2]
+        center_dst_dis = GetDistance(centerpos, dstpos)
+        blue_dst_dis = GetDistance(bluepos, dstpos)
+        red_dst_dis = GetDistance(redpos, dstpos)
+        red_blue_dst_angle = math.acos((math.pow(brdist, 2) + math.pow(blue_dst_dis, 2) - math.pow(red_dst_dis, 2)) / (
+                    2 * brdist * blue_dst_dis)) * 180 / math.pi
+        '''if GetDistance(centerpos, dstpos) <= 20:
+            if dstnode.pos == finalpos:
+                print('task finish')
+                break
+            elif dstnode._l_son.to_end is True:
+                dstnode = dstnode._l_son
+            else:
+                dstnode = dstnode._r_son
+        if red_blue_dst_angle >= 5:
+            if blue_dst_dis > red_dst_dis:
+                TurnRight(red_blue_dst_angle)
+            else:
+                TurnLeft(red_blue_dst_angle)
+        GoAhead(centerpos)'''
+    if pic2.any():
+        cv2.imshow('pic2', pic2)
     cv2.imshow('frame', frame)
-    # cv2.imshow('what', thresh1)
-    # cv2.imshow('ptefer', ptfer)
+    cv2.imshow('grayimg', ptfer0)
     c = cv2.waitKey(100) & 0xFF
     if c == ord('q'):
         break
