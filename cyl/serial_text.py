@@ -3,13 +3,14 @@ import serial.tools.list_ports
 import time
 
 ports = list(serial.tools.list_ports.comports())
+for i in ports:
+    print(i[0])
+
 ser = serial.Serial(port=ports[1][0])
-
-angle = 180
-
-j = angle // 4
-
 while True:
-    pip = input()
+    pip = 'e'
+    print('All right')
+    ser.write(pip.encode())
+    pip = 'd'
     ser.write(pip.encode())
 
